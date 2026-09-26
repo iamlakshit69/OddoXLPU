@@ -11,6 +11,8 @@ const Receipt = require("./Receipt");
 const ReceiptItem = require("./ReceiptItem");
 const Delivery = require("./Delivery");
 const DeliveryItem = require("./DeliveryItem");
+const Transfer = require("./Transfer");
+const TransferItem = require("./TransferItem");
 
 // ---- Category <-> Product ----
 Category.hasMany(Product, { foreignKey: "categoryId" });
@@ -74,6 +76,29 @@ DeliveryItem.belongsTo(Delivery, { foreignKey: "deliveryId" });
 Product.hasMany(DeliveryItem, { foreignKey: "productId" });
 DeliveryItem.belongsTo(Product, { foreignKey: "productId" });
 
+// ---- Transfer relations ----
+Warehouse.hasMany(Transfer, { foreignKey: "sourceWarehouseId", as: "sourceTransfers" });
+Transfer.belongsTo(Warehouse, { foreignKey: "sourceWarehouseId", as: "sourceWarehouse" });
+
+Warehouse.hasMany(Transfer, { foreignKey: "destinationWarehouseId", as: "destinationTransfers" });
+Transfer.belongsTo(Warehouse, { foreignKey: "destinationWarehouseId", as: "destinationWarehouse" });
+
+StockLocation.hasMany(Transfer, { foreignKey: "sourceLocationId", as: "sourceTransfers" });
+Transfer.belongsTo(StockLocation, { foreignKey: "sourceLocationId", as: "sourceLocation" });
+
+StockLocation.hasMany(Transfer, { foreignKey: "destinationLocationId", as: "destinationTransfers" });
+Transfer.belongsTo(StockLocation, { foreignKey: "destinationLocationId", as: "destinationLocation" });
+
+User.hasMany(Transfer, { foreignKey: "createdBy", as: "createdTransfers" });
+Transfer.belongsTo(User, { foreignKey: "createdBy", as: "creator" });
+
+// ---- TransferItem relations ----
+Transfer.hasMany(TransferItem, { foreignKey: "transferId", as: "items" });
+TransferItem.belongsTo(Transfer, { foreignKey: "transferId" });
+
+Product.hasMany(TransferItem, { foreignKey: "productId" });
+TransferItem.belongsTo(Product, { foreignKey: "productId" });
+
 module.exports = {
   sequelize,
   User,
@@ -87,4 +112,6 @@ module.exports = {
   ReceiptItem,
   Delivery,
   DeliveryItem,
+  Transfer,
+  TransferItem,
 };
