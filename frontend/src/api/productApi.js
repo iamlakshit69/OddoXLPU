@@ -24,4 +24,8 @@ export const productApi = {
   createCategory: async (payload) => {
     return await axiosClient.post('/products/categories', payload);
   },
+
+  adjustStock: async (id, payload) => {
+    return await axiosClient.post(`/products/${id}/adjust-stock`, payload);
+  },
 };

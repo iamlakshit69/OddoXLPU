@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { productApi } from '../../api/productApi';
+import { warehouseApi } from '../../api/warehouseApi';
 import { useToast } from '../../context/ToastContext';
 import { useAuth } from '../../context/AuthContext';
 import { KanbanTableToggle } from '../../components/common/KanbanTableToggle';
@@ -20,6 +21,7 @@ import {
   AlertTriangle,
   Layers,
   FolderPlus,
+  Warehouse,
 } from 'lucide-react';
 
 export const ProductList = () => {
@@ -29,6 +31,7 @@ export const ProductList = () => {
 
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
+  const [locations, setLocations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [view, setView] = useState('table'); // 'table' | 'kanban'
 
@@ -45,6 +48,11 @@ export const ProductList = () => {
   const [categoryModalOpen, setCategoryModalOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
 
+  // Stock edit states
+  const [stockEntries, setStockEntries] = useState([]);
+  const [newStockLocId, setNewStockLocId] = useState('');
+  const [newStockQty, setNewStockQty] = useState(0);
+
   // Form states
   const [formData, setFormData] = useState({
     name: '',
@@ -53,6 +61,8 @@ export const ProductList = () => {
     uom: 'PCS',
     reorderLevel: 10,
     reorderQty: 50,
+    initialStock: 0,
+    locationId: '',
   });
   const [categoryName, setCategoryName] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -60,16 +70,18 @@ export const ProductList = () => {
   const fetchProductsAndCategories = async () => {
     setLoading(true);
     try {
-      const [prodRes, catRes] = await Promise.all([
+      const [prodRes, catRes, locRes] = await Promise.all([
         productApi.listProducts({
           search: search || undefined,
           category: selectedCategory || undefined,
           lowStock: lowStockOnly ? 'true' : undefined,
         }),
         productApi.listCategories(),
+        warehouseApi.listLocations().catch(() => ({ data: [] })),
       ]);
       if (prodRes?.data) setProducts(prodRes.data);
       if (catRes?.data) setCategories(catRes.data);
+      if (locRes?.data) setLocations(locRes.data);
     } catch (err) {
       error(err.message || 'Failed to load products');
     } finally {
@@ -89,12 +101,27 @@ export const ProductList = () => {
       uom: 'PCS',
       reorderLevel: 10,
       reorderQty: 50,
+      initialStock: 0,
+      locationId: locations[0]?.id || '',
     });
     setCreateModalOpen(true);
   };
 
   const handleOpenEdit = (product) => {
     setSelectedProduct(product);
+
+    // Map existing stock rows into editable entries
+    const existing = (product.Stocks || []).map((s) => ({
+      locationId: s.locationId,
+      locationName: s.StockLocation?.name || `Location #${s.locationId}`,
+      warehouseName: s.StockLocation?.Warehouse?.name || 'Warehouse',
+      currentQty: Number(s.quantity),
+      targetQty: Number(s.quantity),
+    }));
+    setStockEntries(existing);
+    setNewStockLocId('');
+    setNewStockQty(0);
+
     setFormData({
       name: product.name,
       sku: product.sku,
@@ -125,8 +152,24 @@ export const ProductList = () => {
     e.preventDefault();
     setSubmitting(true);
     try {
-      await productApi.updateProduct(selectedProduct.id, formData);
-      success(`Product "${formData.name}" updated successfully`);
+      const stockUpdates = stockEntries.map((s) => ({
+        locationId: s.locationId,
+        quantity: Number(s.targetQty),
+      }));
+
+      // If user filled in the "Add to another location" fields but didn't click add
+      if (newStockLocId && Number(newStockQty) >= 0) {
+        stockUpdates.push({
+          locationId: Number(newStockLocId),
+          quantity: Number(newStockQty),
+        });
+      }
+
+      await productApi.updateProduct(selectedProduct.id, {
+        ...formData,
+        stockUpdates,
+      });
+      success(`Product "${formData.name}" and inventory stock updated successfully`);
       setEditModalOpen(false);
       fetchProductsAndCategories();
     } catch (err) {
@@ -184,7 +227,7 @@ export const ProductList = () => {
             + Category
           </Button>
 
-          {isAuthorized(['ADMIN', 'MANAGER']) && (
+          {isAuthorized(['ADMIN', 'MANAGER', 'WAREHOUSE_STAFF']) && (
             <Button
               size="sm"
               variant="primary"
@@ -345,7 +388,8 @@ export const ProductList = () => {
         isOpen={createModalOpen}
         onClose={() => setCreateModalOpen(false)}
         title="CREATE PRODUCT CATALOG ITEM"
-        subtitle="Define SKU and automated replenishment parameters"
+        subtitle="Define SKU, automated replenishment, and initial inventory"
+        maxWidth="max-w-xl"
       >
         <form onSubmit={handleCreateSubmit} className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -415,6 +459,39 @@ export const ProductList = () => {
             />
           </div>
 
+          {/* Initial Inventory Section */}
+          <div className="border-t border-charcoal-100 pt-4">
+            <span className="text-[11px] font-mono-code font-bold uppercase text-charcoal-700 block mb-2">
+              INITIAL INVENTORY STOCK (OPTIONAL)
+            </span>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <Input
+                label="Initial Quantity On-Hand"
+                type="number"
+                min="0"
+                value={formData.initialStock}
+                onChange={(e) =>
+                  setFormData({ ...formData, initialStock: Number(e.target.value) })
+                }
+                helperText="Recorded directly into the inventory ledger"
+              />
+              <Select
+                label="Stocking Warehouse Location"
+                value={formData.locationId}
+                onChange={(e) =>
+                  setFormData({ ...formData, locationId: e.target.value })
+                }
+              >
+                <option value="">-- No Initial Stock --</option>
+                {locations.map((loc) => (
+                  <option key={loc.id} value={loc.id}>
+                    {loc.name} ({loc.Warehouse?.name || 'Warehouse'})
+                  </option>
+                ))}
+              </Select>
+            </div>
+          </div>
+
           <div className="pt-4 border-t border-charcoal-100 flex items-center justify-end gap-2">
             <Button
               variant="outline"
@@ -438,7 +515,8 @@ export const ProductList = () => {
         isOpen={editModalOpen}
         onClose={() => setEditModalOpen(false)}
         title={`EDIT PRODUCT • ${selectedProduct?.sku || ''}`}
-        subtitle="Update catalog specifications and location inventory"
+        subtitle="Update catalog specifications and adjust inventory stock"
+        maxWidth="max-w-xl"
       >
         <form onSubmit={handleEditSubmit} className="space-y-4">
           <Input
@@ -471,6 +549,7 @@ export const ProductList = () => {
               <option value="BOX">BOX (Cartons)</option>
               <option value="MTR">MTR (Meters)</option>
               <option value="KG">KG (Kilograms)</option>
+              <option value="LTR">LTR (Liters)</option>
             </Select>
           </div>
 
@@ -495,34 +574,145 @@ export const ProductList = () => {
             />
           </div>
 
-          {/* Location Breakdown Snapshot */}
-          {selectedProduct?.Stocks && selectedProduct.Stocks.length > 0 && (
-            <div className="pt-2">
-              <span className="text-[11px] font-mono-code font-bold uppercase text-charcoal-700 block mb-2">
-                LOCATION INVENTORY BREAKDOWN
+          {/* INVENTORY & STOCK MANAGEMENT SECTION */}
+          <div className="pt-3 border-t border-charcoal-100">
+            <div className="mb-2">
+              <span className="text-[11px] font-mono-code font-bold uppercase text-charcoal-900 block">
+                INVENTORY & LOCATION STOCK MANAGEMENT
               </span>
-              <div className="border border-charcoal-100 rounded-sm divide-y divide-charcoal-50 text-xs">
-                {selectedProduct.Stocks.map((s) => (
-                  <div
-                    key={s.id}
-                    className="p-2.5 flex items-center justify-between bg-[#FBFBFA]"
-                  >
-                    <div>
-                      <span className="font-bold text-charcoal-900 block">
-                        {s.StockLocation?.name || `Location #${s.locationId}`}
-                      </span>
-                      <span className="text-[10px] font-mono-code text-charcoal-400">
-                        {s.StockLocation?.Warehouse?.name || 'Warehouse'}
-                      </span>
-                    </div>
-                    <span className="font-numeric font-bold text-sm text-charcoal-900">
-                      {s.quantity} {selectedProduct.uom}
-                    </span>
-                  </div>
-                ))}
-              </div>
+              <p className="text-[11px] text-charcoal-500">
+                Directly adjust stock counts per warehouse location. Changes update the inventory ledger automatically.
+              </p>
             </div>
-          )}
+
+            {/* List of current location stocks */}
+            {stockEntries.length > 0 ? (
+              <div className="space-y-2 mb-3">
+                {stockEntries.map((s, idx) => {
+                  const diff = Number(s.targetQty) - Number(s.currentQty);
+                  return (
+                    <div
+                      key={s.locationId}
+                      className="p-3 bg-[#FBFBFA] border border-charcoal-100 rounded-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+                    >
+                      <div className="min-w-0">
+                        <span className="font-bold text-xs text-charcoal-900 block truncate">
+                          {s.locationName}
+                        </span>
+                        <div className="flex items-center gap-2 mt-0.5">
+                          <span className="text-[10px] font-mono-code text-charcoal-500 bg-charcoal-100 px-1.5 py-0.5 rounded-sm">
+                            {s.warehouseName}
+                          </span>
+                          <span className="text-[10px] font-mono-code text-charcoal-400">
+                            Current: <strong className="text-charcoal-700">{s.currentQty}</strong> {formData.uom}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2.5 self-end sm:self-center">
+                        <div className="w-28">
+                          <input
+                            type="number"
+                            min="0"
+                            value={s.targetQty}
+                            onChange={(e) => {
+                              const updated = [...stockEntries];
+                              updated[idx].targetQty = e.target.value === '' ? 0 : Number(e.target.value);
+                              setStockEntries(updated);
+                            }}
+                            className="w-full bg-white border border-charcoal-200 rounded-sm px-2.5 py-1 text-xs text-right font-numeric font-bold text-charcoal-900 focus:outline-none focus:border-safety"
+                          />
+                        </div>
+
+                        <div className="w-14 text-right font-mono-code text-xs font-bold">
+                          {diff > 0 ? (
+                            <span className="text-emerald-600">+{diff}</span>
+                          ) : diff < 0 ? (
+                            <span className="text-amber-600">{diff}</span>
+                          ) : (
+                            <span className="text-charcoal-400 font-normal">±0</span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="p-4 bg-charcoal-50 border border-charcoal-200 border-dashed rounded-sm text-center mb-3">
+                <Boxes className="w-6 h-6 text-charcoal-400 mx-auto mb-1" />
+                <p className="text-xs text-charcoal-600 font-medium">
+                  No stock currently allocated for this product.
+                </p>
+                <p className="text-[11px] text-charcoal-400 font-mono-code mt-0.5">
+                  Assign stock to a warehouse location below.
+                </p>
+              </div>
+            )}
+
+            {/* Add stock to another location if available */}
+            {locations.filter((l) => !stockEntries.some((s) => s.locationId === l.id)).length > 0 && (
+              <div className="p-3 bg-[#F4F4F1] border border-charcoal-200 rounded-sm">
+                <span className="text-[10px] font-mono-code font-bold uppercase text-charcoal-600 block mb-2">
+                  + Add Stock to Another Location
+                </span>
+                <div className="grid grid-cols-1 sm:grid-cols-12 gap-2 items-center">
+                  <div className="sm:col-span-7">
+                    <Select
+                      value={newStockLocId}
+                      onChange={(e) => setNewStockLocId(e.target.value)}
+                    >
+                      <option value="">-- Choose Location --</option>
+                      {locations
+                        .filter((l) => !stockEntries.some((s) => s.locationId === l.id))
+                        .map((l) => (
+                          <option key={l.id} value={l.id}>
+                            {l.name} ({l.Warehouse?.name || 'Warehouse'})
+                          </option>
+                        ))}
+                    </Select>
+                  </div>
+                  <div className="sm:col-span-3">
+                    <input
+                      type="number"
+                      min="0"
+                      placeholder="Qty"
+                      value={newStockQty}
+                      onChange={(e) => setNewStockQty(Number(e.target.value))}
+                      className="w-full bg-white border border-charcoal-200 rounded-sm px-2.5 py-1.5 text-xs text-right font-numeric font-bold text-charcoal-900 focus:outline-none focus:border-safety"
+                    />
+                  </div>
+                  <div className="sm:col-span-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="w-full text-xs"
+                      disabled={!newStockLocId}
+                      onClick={() => {
+                        const loc = locations.find((l) => l.id === Number(newStockLocId));
+                        if (!loc) return;
+                        setStockEntries([
+                          ...stockEntries,
+                          {
+                            locationId: loc.id,
+                            locationName: loc.name,
+                            warehouseName: loc.Warehouse?.name || 'Warehouse',
+                            currentQty: 0,
+                            targetQty: Number(newStockQty) || 0,
+                          },
+                        ]);
+                        setNewStockLocId('');
+                        setNewStockQty(0);
+                      }}
+                    >
+                      Add
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
 
           <div className="pt-4 border-t border-charcoal-100 flex items-center justify-end gap-2">
             <Button
@@ -536,7 +726,7 @@ export const ProductList = () => {
               variant="primary"
               loading={submitting}
             >
-              Save Changes
+              Save Product & Stock
             </Button>
           </div>
         </form>

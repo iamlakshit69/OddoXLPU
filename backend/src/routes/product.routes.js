@@ -4,6 +4,7 @@ const { protect, allowRoles } = require("../middleware/auth.middleware");
 const {
   createProduct,
   updateProduct,
+  adjustProductStock,
   listProducts,
   getProduct,
   listCategories,
@@ -16,7 +17,8 @@ router.post("/categories", protect, allowRoles("MANAGER", "ADMIN"), createCatego
 
 router.get("/", protect, listProducts);
 router.get("/:id", protect, getProduct);
-router.post("/", protect, allowRoles("MANAGER", "ADMIN"), createProduct);
-router.put("/:id", protect, allowRoles("MANAGER", "ADMIN"), updateProduct);
+router.post("/", protect, allowRoles("MANAGER", "ADMIN", "WAREHOUSE_STAFF"), createProduct);
+router.put("/:id", protect, allowRoles("MANAGER", "ADMIN", "WAREHOUSE_STAFF"), updateProduct);
+router.post("/:id/adjust-stock", protect, allowRoles("MANAGER", "ADMIN", "WAREHOUSE_STAFF"), adjustProductStock);
 
 module.exports = router;
