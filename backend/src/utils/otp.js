@@ -125,10 +125,10 @@ async function sendOtpEmail(toEmail, otp) {
       console.log(`[OTP] Email sent to ${toEmail} — Message ID: ${info.messageId}`);
     }
   } catch (err) {
-    // Log the error but do NOT expose it to the caller (the forgot-password
-    // endpoint always returns success to prevent email enumeration).
+    // Log but do NOT re-throw — the OTP is already saved in the DB so the
+    // reset flow still works even if email delivery fails. The forgot-password
+    // endpoint must always return success to prevent email enumeration.
     console.error(`[OTP] Failed to send email to ${toEmail}:`, err.message);
-    throw err; // Re-throw so the controller can decide — currently it just logs
   }
 }
 
