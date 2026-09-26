@@ -6,9 +6,9 @@ const AuthContext = createContext(null);
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(() => {
     const saved = localStorage.getItem('stocksense_user');
-    return saved ? JSON.parse(saved) : { id: 1, name: "Lead Operations Manager", email: "admin@stocksense.io", role: "ADMIN" };
+    return saved ? JSON.parse(saved) : null;
   });
-  const [token, setToken] = useState(() => localStorage.getItem('stocksense_token') || 'demo_token');
+  const [token, setToken] = useState(() => localStorage.getItem('stocksense_token') || null);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {

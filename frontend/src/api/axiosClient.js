@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // The local backend serves endpoints on /api/v1 or /api
-const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000/api/v1';
+const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000/api';
 
 const axiosClient = axios.create({
   baseURL: BASE_URL,
@@ -40,7 +40,7 @@ axiosClient.interceptors.response.use(
       localStorage.removeItem('stocksense_token');
       localStorage.removeItem('stocksense_user');
       if (!window.location.pathname.startsWith('/auth')) {
-        // window.location.href = '/auth/login';
+        window.location.href = '/auth/login';
       }
     }
 

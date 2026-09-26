@@ -6,8 +6,8 @@ const productRoutes = require("./product.routes");
 const receiptRoutes = require("./receipt.routes");
 const deliveryRoutes = require("./delivery.routes");
 const transferRoutes = require("./transfer.routes");
-
 const adjustmentRoutes = require("./adjustment.routes");
+const warehouseRoutes = require("./warehouse.routes");
 
 router.use("/auth", authRoutes);
 router.use("/products", productRoutes);
@@ -15,10 +15,6 @@ router.use("/receipts", receiptRoutes);
 router.use("/deliveries", deliveryRoutes);
 router.use("/transfers", transferRoutes);
 router.use("/adjustments", adjustmentRoutes);
-
-// Future modules plug in here the same way:
-// router.use("/stock-ledger", stockLedgerRoutes);
-// router.use("/warehouses", warehouseRoutes);
-// router.use("/dashboard", dashboardRoutes);
+router.use("/warehouses", warehouseRoutes);
 
 module.exports = router;
