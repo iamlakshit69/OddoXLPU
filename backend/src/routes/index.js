@@ -3,12 +3,13 @@ const router = express.Router();
 
 const authRoutes = require("./auth.routes");
 const productRoutes = require("./product.routes");
+const receiptRoutes = require("./receipt.routes");
 
 router.use("/auth", authRoutes);
 router.use("/products", productRoutes);
+router.use("/receipts", receiptRoutes);
 
 // Future modules plug in here the same way:
-// router.use("/receipts", receiptRoutes);
 // router.use("/deliveries", deliveryRoutes);
 // router.use("/transfers", transferRoutes);
 // router.use("/adjustments", adjustmentRoutes);

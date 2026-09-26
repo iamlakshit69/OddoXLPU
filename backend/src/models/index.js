@@ -7,6 +7,8 @@ const Warehouse = require("./Warehouse");
 const StockLocation = require("./StockLocation");
 const Stock = require("./Stock");
 const StockLedger = require("./StockLedger");
+const Receipt = require("./Receipt");
+const ReceiptItem = require("./ReceiptItem");
 
 // ---- Category <-> Product ----
 Category.hasMany(Product, { foreignKey: "categoryId" });
@@ -36,6 +38,23 @@ StockLedger.belongsTo(Warehouse, { foreignKey: "warehouseId" });
 User.hasMany(StockLedger, { foreignKey: "createdBy" });
 StockLedger.belongsTo(User, { foreignKey: "createdBy", as: "creator" });
 
+// ---- Receipt relations ----
+Warehouse.hasMany(Receipt, { foreignKey: "warehouseId" });
+Receipt.belongsTo(Warehouse, { foreignKey: "warehouseId" });
+
+StockLocation.hasMany(Receipt, { foreignKey: "locationId" });
+Receipt.belongsTo(StockLocation, { foreignKey: "locationId" });
+
+User.hasMany(Receipt, { foreignKey: "createdBy" });
+Receipt.belongsTo(User, { foreignKey: "createdBy", as: "creator" });
+
+// ---- ReceiptItem relations ----
+Receipt.hasMany(ReceiptItem, { foreignKey: "receiptId", as: "items" });
+ReceiptItem.belongsTo(Receipt, { foreignKey: "receiptId" });
+
+Product.hasMany(ReceiptItem, { foreignKey: "productId" });
+ReceiptItem.belongsTo(Product, { foreignKey: "productId" });
+
 module.exports = {
   sequelize,
   User,
@@ -45,4 +64,6 @@ module.exports = {
   StockLocation,
   Stock,
   StockLedger,
+  Receipt,
+  ReceiptItem,
 };
