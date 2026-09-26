@@ -62,7 +62,7 @@ export const Login = () => {
             required
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            placeholder="admin@stocksense.io"
+            placeholder=""
           />
 
           <Input
@@ -72,7 +72,7 @@ export const Login = () => {
             required
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            placeholder="••••••••••••"
+            placeholder=""
           />
 
           <div className="flex items-center justify-between text-xs pt-1">
