@@ -7,13 +7,27 @@ const { errorHandler, notFound } = require("./middleware/error.middleware");
 
 const app = express();
 
-const allowedOrigins = process.env.FRONTEND_URL
-  ? [process.env.FRONTEND_URL, "http://localhost:3000"]
-  : ["http://localhost:3000"];
+// Build allowed origins list — supports FRONTEND_URL env var plus localhost for dev.
+// Also accepts any Vercel preview URL for the same project.
+const allowedOrigins = [
+  "http://localhost:3000",
+  "http://localhost:5173",
+];
+if (process.env.FRONTEND_URL) {
+  // Strip trailing slash if present
+  allowedOrigins.push(process.env.FRONTEND_URL.replace(/\/$/, ""));
+}
 
 app.use(
   cors({
-    origin: allowedOrigins,
+    origin: (origin, callback) => {
+      // Allow non-browser requests (curl, Render health checks) and allowed origins
+      if (!origin || allowedOrigins.includes(origin) || /\.vercel\.app$/.test(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error(`CORS: origin '${origin}' not allowed`));
+      }
+    },
     credentials: true,
   })
 );
