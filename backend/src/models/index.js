@@ -13,6 +13,8 @@ const Delivery = require("./Delivery");
 const DeliveryItem = require("./DeliveryItem");
 const Transfer = require("./Transfer");
 const TransferItem = require("./TransferItem");
+const Adjustment = require("./Adjustment");
+const AdjustmentItem = require("./AdjustmentItem");
 
 // ---- Category <-> Product ----
 Category.hasMany(Product, { foreignKey: "categoryId" });
@@ -99,6 +101,23 @@ TransferItem.belongsTo(Transfer, { foreignKey: "transferId" });
 Product.hasMany(TransferItem, { foreignKey: "productId" });
 TransferItem.belongsTo(Product, { foreignKey: "productId" });
 
+// ---- Adjustment relations ----
+Warehouse.hasMany(Adjustment, { foreignKey: "warehouseId" });
+Adjustment.belongsTo(Warehouse, { foreignKey: "warehouseId" });
+
+StockLocation.hasMany(Adjustment, { foreignKey: "locationId" });
+Adjustment.belongsTo(StockLocation, { foreignKey: "locationId" });
+
+User.hasMany(Adjustment, { foreignKey: "createdBy" });
+Adjustment.belongsTo(User, { foreignKey: "createdBy", as: "creator" });
+
+// ---- AdjustmentItem relations ----
+Adjustment.hasMany(AdjustmentItem, { foreignKey: "adjustmentId", as: "items" });
+AdjustmentItem.belongsTo(Adjustment, { foreignKey: "adjustmentId" });
+
+Product.hasMany(AdjustmentItem, { foreignKey: "productId" });
+AdjustmentItem.belongsTo(Product, { foreignKey: "productId" });
+
 module.exports = {
   sequelize,
   User,
@@ -114,4 +133,6 @@ module.exports = {
   DeliveryItem,
   Transfer,
   TransferItem,
+  Adjustment,
+  AdjustmentItem,
 };
