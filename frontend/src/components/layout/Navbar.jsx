@@ -14,7 +14,7 @@ import {
 import { AppLauncherModal } from './AppLauncherModal';
 
 export const Navbar = () => {
-  const { user, logout, login } = useAuth();
+  const { user, logout } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
   const [launcherOpen, setLauncherOpen] = useState(false);
@@ -34,11 +34,7 @@ export const Navbar = () => {
     return 'INVENTORY MANAGEMENT';
   };
 
-  const switchRole = (role) => {
-    const email = role === 'ADMIN' ? 'admin@stocksense.io' : role === 'MANAGER' ? 'manager@stocksense.io' : 'staff@stocksense.io';
-    login(email, 'password123');
-    setUserDropdownOpen(false);
-  };
+
 
   return (
     <>
@@ -148,27 +144,7 @@ export const Navbar = () => {
                     </div>
                   </div>
 
-                  {/* Fast Role Simulator for Recruiter Testing */}
-                  <div className="px-4 py-2 border-b border-charcoal-50">
-                    <p className="text-[10px] font-mono-code font-bold uppercase text-charcoal-400 mb-1.5">
-                      Fast Role Switcher (Demo):
-                    </p>
-                    <div className="grid grid-cols-3 gap-1">
-                      {['ADMIN', 'MANAGER', 'STAFF'].map((r) => (
-                        <button
-                          key={r}
-                          onClick={() => switchRole(r === 'STAFF' ? 'WAREHOUSE_STAFF' : r)}
-                          className={`text-[10px] font-mono-code py-1 px-1.5 rounded-sm border text-center transition-colors ${
-                            user?.role === (r === 'STAFF' ? 'WAREHOUSE_STAFF' : r)
-                              ? 'bg-charcoal-900 text-white border-charcoal-900 font-bold'
-                              : 'bg-charcoal-50 text-charcoal-700 hover:bg-charcoal-100 border-charcoal-200'
-                          }`}
-                        >
-                          {r}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
+
 
                   <button
                     onClick={() => {

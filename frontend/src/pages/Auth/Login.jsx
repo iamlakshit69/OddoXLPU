@@ -4,15 +4,15 @@ import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import { Input } from '../../components/ui/Input';
 import { Button } from '../../components/ui/Button';
-import { Lock, Mail, ArrowRight, ShieldCheck, Zap } from 'lucide-react';
+import { Lock, Mail, ArrowRight, ShieldCheck } from 'lucide-react';
 
 export const Login = () => {
   const navigate = useNavigate();
   const { login, loading } = useAuth();
   const { success, error } = useToast();
 
-  const [email, setEmail] = useState('admin@stocksense.io');
-  const [password, setPassword] = useState('password123');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -25,10 +25,7 @@ export const Login = () => {
     }
   };
 
-  const handleQuickLogin = (roleEmail) => {
-    setEmail(roleEmail);
-    setPassword('password123');
-  };
+
 
   return (
     <div className="min-h-screen bg-[#F5F5F3] flex flex-col justify-center items-center p-4">
@@ -106,33 +103,7 @@ export const Login = () => {
           </Button>
         </form>
 
-        {/* Quick Demo Credentials for Fast Evaluation */}
-        <div className="mt-8 pt-6 border-t border-charcoal-100">
-          <div className="flex items-center gap-1.5 mb-2.5">
-            <Zap className="w-3.5 h-3.5 text-safety" />
-            <span className="text-[10px] font-mono-code font-bold uppercase text-charcoal-500 tracking-wider">
-              Quick Role Test Fill:
-            </span>
-          </div>
-          <div className="grid grid-cols-2 gap-2">
-            <button
-              type="button"
-              onClick={() => handleQuickLogin('admin@stocksense.io')}
-              className="text-[10px] font-mono-code p-2 border border-charcoal-200 rounded-sm hover:border-safety hover:bg-safety-light/30 transition-colors text-left"
-            >
-              <span className="font-bold block text-charcoal-900">ADMIN ROLE</span>
-              <span className="text-charcoal-400 truncate block">admin@stocksense.io</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => handleQuickLogin('manager@stocksense.io')}
-              className="text-[10px] font-mono-code p-2 border border-charcoal-200 rounded-sm hover:border-safety hover:bg-safety-light/30 transition-colors text-left"
-            >
-              <span className="font-bold block text-charcoal-900">MANAGER ROLE</span>
-              <span className="text-charcoal-400 truncate block">manager@stocksense.io</span>
-            </button>
-          </div>
-        </div>
+
 
         <div className="mt-6 text-center text-xs text-charcoal-500">
           Don't have an account?{' '}
