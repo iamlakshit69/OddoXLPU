@@ -88,7 +88,11 @@ async function forgotPassword(req, res, next) {
       user.otpCode = otp;
       user.otpExpiresAt = getOtpExpiry();
       await user.save();
-      await sendOtpEmail(user.email, otp);
+      // Fire-and-forget: respond immediately, send email in background.
+      // This prevents SMTP timeouts from blocking the response.
+      sendOtpEmail(user.email, otp).catch((err) =>
+        console.error("[OTP] Background email send failed:", err.message)
+      );
     }
 
     res.json({ success: true, data: { message: "If that email exists, an OTP has been sent." } });
